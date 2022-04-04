@@ -32,6 +32,14 @@ if __name__ == "__main__":
 
 @bot.command(
     name="status",
-    description="Get bot's status",
-    scope=
+    description="Статус бота",
+    scope=GuildIDS
 )
+async def StatusCommand(ctx: interactions.CommandContext):
+    emb = interactions.Embed()
+    emb.title = "Статус бота"
+    emb.description = f"""
+    `Ping={bot.latency}ms`
+    """
+    emb.color = 0xff00
+    await ctx.send(embeds=[emb])
