@@ -26,20 +26,20 @@ async def on_ready():
     log(f"Logged into {bot.me.name}", loglevel=LogLevel.INFO)
 
 
-if __name__ == "__main__":
-    bot.start()
-
-
 @bot.command(
     name="status",
     description="Статус бота",
     scope=GuildIDS
 )
 async def StatusCommand(ctx: interactions.CommandContext):
-    emb = interactions.Embed()
-    emb.title = "Статус бота"
-    emb.description = f"""
+    emb = interactions.Embed(title="Статус бота",
+                             description=f"""    
     `Ping={bot.latency}ms`
-    """
-    emb.color = 0xff00
+    """,
+                             color=0xff00)
+
     await ctx.send(embeds=[emb])
+
+
+if __name__ == "__main__":
+    bot.start()
