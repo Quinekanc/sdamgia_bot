@@ -17,9 +17,10 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
         GuildIDS = data['ids']
 
 
-bot = interactions.Client(token=TOKEN)
+bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL)
 
 sdamgia = SdamGIA()
+
 
 @bot.event
 async def on_ready():
