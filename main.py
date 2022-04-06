@@ -3,6 +3,7 @@ from sdamgia import SdamGIA
 import interactions
 from interactions.api.models.misc import MISSING
 from utils.Log import log, InitLogger
+from models import DbConnection
 import json
 
 
@@ -21,6 +22,7 @@ bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL)
 
 #sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
+DbConnection.InitDb("db.sqlite")
 
 
 @bot.event
