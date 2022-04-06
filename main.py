@@ -2,7 +2,7 @@ from enums.LogLevel import LogLevel
 from sdamgia import SdamGIA
 import interactions
 from interactions.api.models.misc import MISSING
-from utils.Log import log
+from utils.Log import log, InitLogger
 import json
 
 
@@ -19,7 +19,8 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
 
 bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL)
 
-sdamgia = SdamGIA()
+#sdamgia = SdamGIA()
+InitLogger(LogLevel.INFO)
 
 
 @bot.event
@@ -43,4 +44,6 @@ async def StatusCommand(ctx: interactions.CommandContext):
 
 
 if __name__ == "__main__":
+    log("Starting bot...", loglevel=LogLevel.INFO)
     bot.start()
+
