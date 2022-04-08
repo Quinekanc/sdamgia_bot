@@ -3,9 +3,11 @@ from sdamgia import SdamGIA
 import interactions
 from interactions.api.models.misc import MISSING
 from utils.Log import log, InitLogger
-from models import DbConnection
+from DBmodels import DbConnection
 import json
 from data import Subjects
+from models.SdamGiaResponse import *
+
 
 
 with open("token.txt", mode='r', encoding='utf8') as f:
@@ -65,7 +67,7 @@ async def StatusCommand(ctx: interactions.CommandContext):
 )
 async def TaskCommand(ctx: interactions.CommandContext, subject: str, number: int):
     try:
-        result = sdamgia.get_problem_by_id(subject, str(number))
+        result = SdamGiaResponse(sdamgia.get_problem_by_id(subject, str(number)))
     except Exception as ex:
         log(ex, loglevel=LogLevel.ERROR)
         await ctx.send("Произошла ошибка")
@@ -76,7 +78,7 @@ async def TaskCommand(ctx: interactions.CommandContext, subject: str, number: in
         return
 
     emb = interactions.Embed(title=f"Задание №{number}",
-                             description=f"""`{result["condition"]["text"]}`""",
+                             description=f"""`{result.condition.text}`""",
                              color=0xff00)
 
     await ctx.send(embeds=[emb])
