@@ -1,3 +1,7 @@
+import os
+vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
+os.environ['PATH'] = vipshome + ';' + os.environ['PATH']
+
 from enums.LogLevel import LogLevel
 from sdamgia import SdamGIA
 import interactions
@@ -7,6 +11,8 @@ from DBmodels import DbConnection
 import json
 from data import Subjects
 from models.SdamGiaResponse import *
+import discord
+from utils.ImageUtils import GetPng, InitImageUtils
 
 
 
@@ -25,6 +31,7 @@ bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable
 
 sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
+InitImageUtils()
 DbConnection.InitDb("db.sqlite")
 
 
@@ -77,11 +84,23 @@ async def TaskCommand(ctx: interactions.CommandContext, subject: str, number: in
         await ctx.send("Задание не найдено", ephemeral=True)
         return
 
-    emb = interactions.Embed(title=f"Задание №{number}",
-                             description=f"""`{result.condition.text}`""",
-                             color=0xff00)
+    if len(result.condition.images) == 0:
+        embs = [interactions.Embed(title=f"Задание №{number}",
+                                 description=f"""`{result.condition.text}`""",
+                                 color=0xff00)]
+    else:
+        await ctx.defer()
+        embs = []
+        for imgUrl in result.condition.images:
+            img = GetPng(imgUrl)
+            emb = discord.Embed(title=f"Задание №{number}",
+                                description=f"""`{result.condition.text}`""",
+                                color=0xff00,
+                                url=result.url)
+            emb.set_image(url=img)
+            embs.append(interactions.Embed(**emb.to_dict()))
 
-    await ctx.send(embeds=[emb])
+    await ctx.send(embeds=embs)
 
 
 if __name__ == "__main__":
