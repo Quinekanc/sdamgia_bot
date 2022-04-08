@@ -1,4 +1,7 @@
 colorama~=0.4.4
 discord-py-interactions
 sdamgia-api
-sqlalchemy
+sqlalchemy~=1.4.35
+discord~=1.0.1
+requests~=2.25.1
+pyvips~=2.1.16
