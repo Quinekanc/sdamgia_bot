@@ -27,7 +27,7 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
         GuildIDS = data['ids']
 
 
-bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=False)
+bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=True)
 
 sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
@@ -85,6 +85,13 @@ async def StatusCommand(ctx: interactions.CommandContext):
             required=False,
             options=[
                 interactions.Option(
+                    name="class_name",
+                    description="Класс, которому будет выдано задание",
+                    type=interactions.OptionType.STRING,
+                    required=True,
+                    autocomplete=True
+                ),
+                interactions.Option(
                     name="subject",
                     description="Предмет",
                     type=interactions.OptionType.STRING,
@@ -96,20 +103,13 @@ async def StatusCommand(ctx: interactions.CommandContext):
                     description="Номер задания",
                     type=interactions.OptionType.INTEGER,
                     required=True
-                ),
-                interactions.Option(
-                    name="class_name",
-                    description="Класс, которому будет выдано задание",
-                    type=interactions.OptionType.STRING,
-                    required=True,
-                    autocomplete=True
                 )
             ]
         )
     ]
 )
-async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subject: str, number: int,
-                      class_name: str):
+async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subject: str,
+                      number: int = 0, class_name: str = ""):
     if sub_command == "find":
         try:
             result = SdamGiaResponse(sdamgia.get_problem_by_id(subject, str(number)))
@@ -137,11 +137,31 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                                     url=result.url)
                 emb.set_image(url=img)
                 embs.append(interactions.Embed(**emb.to_dict()))
+        #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
 
-        await ctx.send(embeds=embs)
+        await ctx.send(embeds=embs,
+                       components=[
+                           interactions.Button(style=interactions.ButtonStyle.SUCCESS,
+                                               label="Ответить",
+                                               custom_id="SolveTask_1111")
+                       ])
     elif sub_command == "give":
          # TODO: Выдача задания классу
          raise NotImplementedError
+
+
+async def SolveTaskButtonPress(ctx: interactions.ComponentContext, taskId: int):
+    await ctx.send(f"ok, ID:{taskId}")
+
+
+@bot.event
+async def on_interaction_create(interaction):
+    if interaction.type == interactions.InteractionType.MESSAGE_COMPONENT:
+        interaction: interactions.ComponentContext
+
+        if interaction.custom_id.startswith("SolveTask_"):
+            taskId = int(interaction.custom_id.split("_")[1])
+            await SolveTaskButtonPress(interaction, taskId)
 
 
 async def SearchClass(ctx, userInput: str = ""):
@@ -187,7 +207,8 @@ async def SearchClass(ctx, userInput: str = ""):
         )
     ]
 )
-async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str, user: interactions.Member):
+async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
+                         user: interactions.Member = None):
     if sub_command == "add":
         # TODO: добавить учителя
 
@@ -277,7 +298,7 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str, use
     ]
 )
 async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
-                         class_name: str, user):
+                         class_name: str = "", user: interactions.Member = None):
     if sub_command == "create":
         # TODO: создать класс
 
