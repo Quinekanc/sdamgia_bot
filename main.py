@@ -1,4 +1,7 @@
 import os
+
+from DBmodels.Task import Task
+
 vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
 os.environ['PATH'] = vipshome + ';' + os.environ['PATH']
 
@@ -27,12 +30,13 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
         GuildIDS = data['ids']
 
 
-bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=True)
+bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=False)
 
 sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
 InitImageUtils()
 DbConnection.InitDb("db.sqlite")
+db_sess = DbConnection.CreateSession()
 
 
 @bot.event
@@ -137,6 +141,14 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                                     url=result.url)
                 emb.set_image(url=img)
                 embs.append(interactions.Embed(**emb.to_dict()))
+                task = Task()
+                task.TaskId = number
+                task.Topic = result['topic']
+                task.User = bot.me.id
+                task.Subject = subject
+
+                db_sess.add(task)
+                db_sess.commit()
         #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
 
         await ctx.send(embeds=embs,
