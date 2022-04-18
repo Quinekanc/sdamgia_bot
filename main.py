@@ -36,7 +36,6 @@ sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
 InitImageUtils()
 DbConnection.InitDb("db.sqlite")
-db_sess = DbConnection.CreateSession()
 
 
 @bot.event
@@ -141,14 +140,6 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                                     url=result.url)
                 emb.set_image(url=img)
                 embs.append(interactions.Embed(**emb.to_dict()))
-                task = Task()
-                task.TaskId = number
-                task.Topic = result['topic']
-                task.User = bot.me.id
-                task.Subject = subject
-
-                db_sess.add(task)
-                db_sess.commit()
         #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
 
         await ctx.send(embeds=embs,
