@@ -13,6 +13,8 @@ from utils.Log import log, InitLogger
 from DBmodels import DbConnection
 import json
 from data import Subjects
+from DBmodels.Class import Class
+from DBmodels.Teachers import Teacher
 from models.SdamGiaResponse import *
 import discord
 from utils.ImageUtils import GetPng, InitImageUtils
@@ -213,9 +215,13 @@ async def SearchClass(ctx, userInput: str = ""):
 async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
                          user: interactions.Member = None):
     if sub_command == "add":
-        # TODO: добавить учителя
+        teacher = Teacher()
+        teacher.teacher_id = user.id
 
-        raise NotImplementedError
+        db_sess = DbConnection.CreateSession()
+        db_sess.add(teacher)
+        db_sess.commit()
+
     elif sub_command == "remove":
         # TODO: Убрать учителя
 
@@ -301,11 +307,15 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
     ]
 )
 async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
-                         class_name: str = "", user: interactions.Member = None):
+                         user: interactions.Member = None, class_name: str = ""):
     if sub_command == "create":
-        # TODO: создать класс
+        main_class = Class()
+        main_class.class_name = class_name
 
-        raise NotImplementedError
+        db_sess = DbConnection.CreateSession()
+        db_sess.add(main_class)
+        db_sess.commit()
+
     elif sub_command == "remove":
         # TODO: Удалить класс
 
