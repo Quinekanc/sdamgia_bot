@@ -1,10 +1,9 @@
 import os
-
-from DBmodels.Task import Task
-
 vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
 os.environ['PATH'] = vipshome + ';' + os.environ['PATH']
 
+from DBmodels.Task import Task
+from models.TaskModel import TaskModel
 from enums.LogLevel import LogLevel
 from sdamgia import SdamGIA
 import interactions
@@ -32,12 +31,14 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
         GuildIDS = data['ids']
 
 
-bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=False)
+bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=True)
 
 sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
 InitImageUtils()
 DbConnection.InitDb("db.sqlite")
+
+TaskCache = {}
 
 
 @bot.event
@@ -117,7 +118,7 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                       number: int = 0, class_name: str = ""):
     if sub_command == "find":
         try:
-            result = SdamGiaResponse(sdamgia.get_problem_by_id(subject, str(number)))
+            result = TaskModel(sdamgia.get_problem_by_id(subject, str(number)), ctx.author)
         except Exception as ex:
             log(ex, loglevel=LogLevel.ERROR)
             await ctx.send("Произошла ошибка")
@@ -126,6 +127,8 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
         if result is None:
             await ctx.send("Задание не найдено", ephemeral=True)
             return
+
+        TaskCache[result.uuid] = result
 
         if len(result.condition.images) == 0:
             embs = [interactions.Embed(title=f"Задание №{number}",
@@ -144,19 +147,52 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                 embs.append(interactions.Embed(**emb.to_dict()))
         #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
 
+
         await ctx.send(embeds=embs,
                        components=[
                            interactions.Button(style=interactions.ButtonStyle.SUCCESS,
                                                label="Ответить",
-                                               custom_id="SolveTask_1111")
+                                               custom_id=f"SolveTask_{result.uuid}")
                        ])
     elif sub_command == "give":
          # TODO: Выдача задания классу
          raise NotImplementedError
 
 
-async def SolveTaskButtonPress(ctx: interactions.ComponentContext, taskId: int):
-    await ctx.send(f"ok, ID:{taskId}")
+async def SolveTaskButtonPress(ctx: interactions.ComponentContext, taskId: str):
+    task: TaskModel = TaskCache[taskId]
+    if task.solved:
+        await ctx.send("Вы уже ответили на этот вопрос", ephemeral=True)
+        return
+
+    modal = interactions.Modal(
+        title="Ответ на вопрос",
+        custom_id=f"answerModar_{taskId}",
+        components=[
+            interactions.TextInput(
+                style=interactions.TextStyleType.SHORT,
+                label="Введите ответ",
+                custom_id="answerInputField",
+                min_length=1,
+                max_length=255
+            )
+        ]
+    )
+    await ctx.popup(modal)
+
+
+async def ModalResponseHandler(ctx, taskId: str):
+    task: TaskModel = TaskCache[taskId]
+    if task.solved:
+        await ctx.send("Вы уже ответили на этот вопрос", ephemeral=True)
+        return
+    answer = ctx._json['data']['components'][0]['components'][0]['value']
+
+    if task.tryToSolve(answer):
+        await ctx.send(f"Правильно! Ваш балл - `{task.result}`")
+        #TODO: добавить кнопок с "похожими номерами"
+    else:
+        await ctx.send("Неверный ответ")
 
 
 @bot.event
@@ -165,8 +201,15 @@ async def on_interaction_create(interaction):
         interaction: interactions.ComponentContext
 
         if interaction.custom_id.startswith("SolveTask_"):
-            taskId = int(interaction.custom_id.split("_")[1])
+            taskId = interaction.custom_id.split("_")[1]
             await SolveTaskButtonPress(interaction, taskId)
+
+    elif interaction.type == interactions.InteractionType.MODAL_SUBMIT:
+        custom_id = interaction._json['data']['custom_id']
+        if custom_id.startswith("answerModar_"):
+            taskId = custom_id.split("_")[1]
+            await ModalResponseHandler(interaction, taskId)
+
 
 
 async def SearchClass(ctx, userInput: str = ""):
