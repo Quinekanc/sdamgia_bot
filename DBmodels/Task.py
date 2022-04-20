@@ -9,7 +9,9 @@ class Task(SqlAlchemyBase):
     Id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
     TaskId = sqlalchemy.Column(sqlalchemy.Integer)
     Topic = sqlalchemy.Column(sqlalchemy.Integer)
-    User_Id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Users.Id"))
-    Subject_Name = sqlalchemy.Column(sqlalchemy.String, sqlalchemy.ForeignKey("Subjects.Name"))
-    User = orm.relation('User')
-    Subject = orm.relation('Subject')
+    StudentId = sqlalchemy.Column(sqlalchemy.Integer)
+    SubjectName = sqlalchemy.Column(sqlalchemy.String)
+    ClassTaskId = sqlalchemy.Column(sqlalchemy.Integer)
+    Result = sqlalchemy.Column(sqlalchemy.Integer)
+
+    Task = orm.relation("Task")
