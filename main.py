@@ -1,4 +1,7 @@
 import os
+
+from DBmodels.User import User
+
 vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
 os.environ['PATH'] = vipshome + ';' + os.environ['PATH']
 
@@ -13,7 +16,6 @@ from DBmodels import DbConnection
 import json
 from data import Subjects
 from DBmodels.Classes import Class
-from DBmodels.Teacher import Teacher
 from models.SdamGiaResponse import *
 import discord
 from utils.ImageUtils import GetPng, InitImageUtils
@@ -212,13 +214,17 @@ async def on_interaction_create(interaction):
             await ModalResponseHandler(interaction, taskId)
 
 
-
 async def SearchClass(ctx, userInput: str = ""):
-    #TODO: сделать поиск названия класса в БД по мере ввода названия пользователем. Максимум 25 результатов
-    await ctx.populate([
-        interactions.Choice(name="5А", value="5a"),
-        interactions.Choice(name="5Б", value="5b")
-    ])
+    #TODO: сделать поиск названия класса в БД
+
+    db = DbConnection.CreateSession()
+    classes = db.query(Class).limit(25).all()
+    choices = []
+    for cla in classes:
+        cla: Class
+        choices.append(interactions.Choice(name=cla.ClassName, value=str(cla.Id)))
+
+    await ctx.populate(choices)
 
 
 @bot.command(
@@ -259,8 +265,8 @@ async def SearchClass(ctx, userInput: str = ""):
 async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
                          user: interactions.Member = None):
     if sub_command == "add":
-        teacher = Teacher()
-        teacher.teacher_id = user.id
+        teacher: User = User()
+        teacher.IsTeacher = True
 
         db_sess = DbConnection.CreateSession()
         db_sess.add(teacher)
@@ -298,7 +304,7 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
             required=False,
             options=[
                 interactions.Option(
-                name="class_name",
+                name="class_id",
                 description="Название класса",
                 type=interactions.OptionType.STRING,
                 required=True,
@@ -313,7 +319,7 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
             required=False,
             options=[
                 interactions.Option(
-                name="class_name",
+                name="class_id",
                 description="Название класса",
                 type=interactions.OptionType.STRING,
                 required=True,
@@ -334,7 +340,7 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
             required=False,
             options=[
                 interactions.Option(
-                name="class_name",
+                name="class_id",
                 description="Название класса",
                 type=interactions.OptionType.STRING,
                 required=True,
@@ -350,20 +356,35 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
         )
     ]
 )
-async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
-                         user: interactions.Member = None, class_name: str = ""):
+async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
+                         user: interactions.Member = None, class_id: str = "", class_name: str = ""):
+    await ctx.defer()
+    class_id = int(class_id)
+
     if sub_command == "create":
         main_class = Class()
-        main_class.class_name = class_name
+        main_class.ClassName = class_name
 
         db_sess = DbConnection.CreateSession()
+        if db_sess.query(Class).filter(Class.ClassName == class_id).first() is not None:
+            await ctx.send("Этот класс уже существует в системе")
+            return
+
         db_sess.add(main_class)
         db_sess.commit()
 
-    elif sub_command == "remove":
-        # TODO: Удалить класс
+        await ctx.send("Класс добавлен")
 
-        raise NotImplementedError
+    elif sub_command == "remove":
+        db_sess = DbConnection.CreateSession()
+        if (cl := db_sess.query(Class).filter(Class.Id == class_id)).first() is None:
+            await ctx.send("Класс не найден")
+            return
+
+        cl.delete()
+        db_sess.commit()
+
+        await ctx.send("Класс удалён")
     elif sub_command == "add_student":
         # TODO: Добавить ученика в класс
 
@@ -390,7 +411,7 @@ async def SearchClassByNameAutocomplete(ctx, user_input: str = ""):
     await SearchClass(ctx, user_input)
 
 
-@bot.autocomplete(command="class", name="class_name")
+@bot.autocomplete(command="class", name="class_id")
 async def SearchClassByNameAutocomplete(ctx, user_input: str = ""):
     await SearchClass(ctx, user_input)
 

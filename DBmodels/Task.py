@@ -14,6 +14,3 @@ class Task(SqlAlchemyBase):
     ClassTaskId = sqlalchemy.Column(sqlalchemy.Integer)
     Result = sqlalchemy.Column(sqlalchemy.Integer)
 
-    subject = orm.relationship("Subject")
-
-    Task = orm.relation("Task")

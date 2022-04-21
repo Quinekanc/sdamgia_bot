@@ -8,5 +8,3 @@ class Class(SqlAlchemyBase):
 
     Id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
     ClassName = sqlalchemy.Column(sqlalchemy.String)
-
-    main_class = orm.relation("Class")

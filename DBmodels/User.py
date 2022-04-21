@@ -7,7 +7,7 @@ from .DbConnection import SqlAlchemyBase
 class User(SqlAlchemyBase):
     __tablename__ = 'Users'
 
-    Id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Students.Id"), primary_key=True)
+    Id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
 
-    teachers = orm.relationship("Teacher")
-    students = orm.relationship("Student")
+    IsTeacher = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    IsStudent = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
