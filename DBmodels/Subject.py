@@ -7,4 +7,6 @@ class Subject(SqlAlchemyBase):
     __tablename__ = 'Subjects'
 
     Id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
-    Name = sqlalchemy.Column(sqlalchemy.String, sqlalchemy.ForeignKey("Task.Subject"))
+    Name = sqlalchemy.Column(sqlalchemy.String)
+
+    orm.relationship("Tasks", back_populates="")

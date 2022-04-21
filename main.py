@@ -12,8 +12,8 @@ from utils.Log import log, InitLogger
 from DBmodels import DbConnection
 import json
 from data import Subjects
-from DBmodels.Class import Class
-from DBmodels.Teachers import Teacher
+from DBmodels.Classes import Class
+from DBmodels.Teacher import Teacher
 from models.SdamGiaResponse import *
 import discord
 from utils.ImageUtils import GetPng, InitImageUtils

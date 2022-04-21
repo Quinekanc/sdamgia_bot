@@ -10,8 +10,10 @@ class Task(SqlAlchemyBase):
     TaskId = sqlalchemy.Column(sqlalchemy.Integer)
     Topic = sqlalchemy.Column(sqlalchemy.Integer)
     StudentId = sqlalchemy.Column(sqlalchemy.Integer)
-    SubjectName = sqlalchemy.Column(sqlalchemy.String)
+    SubjectId = sqlalchemy.Column(sqlalchemy.Integer)
     ClassTaskId = sqlalchemy.Column(sqlalchemy.Integer)
     Result = sqlalchemy.Column(sqlalchemy.Integer)
+
+    subject = orm.relationship("Subject")
 
     Task = orm.relation("Task")
