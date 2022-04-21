@@ -4,7 +4,7 @@ from sqlalchemy import orm
 
 
 class ClassTeachers(SqlAlchemyBase):
-    __tablename__ = 'Tasks'
+    __tablename__ = 'ClassTeachers'
 
     ClassId = sqlalchemy.Column(sqlalchemy.Integer)
     TeacherId = sqlalchemy.Column(sqlalchemy.Integer)
