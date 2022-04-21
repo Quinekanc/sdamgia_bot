@@ -15,6 +15,7 @@ from utils.Log import log, InitLogger
 from DBmodels import DbConnection
 import json
 from data import Subjects
+from enums import Subject
 from DBmodels.Classes import Class
 from models.SdamGiaResponse import *
 import discord
@@ -219,8 +220,6 @@ async def ModalResponseHandler(ctx, taskId: str):
         db = DbConnection.CreateSession()
         db.query(Task).filter(Task.Id == taskId).update({"Result": task.result})
         db.commit()
-
-        #TODO: добавить кнопок с "похожими номерами"
     else:
         await ctx.send("Неверный ответ")
 
@@ -429,13 +428,30 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
 
 @bot.command(
     name="tasks",
-    description="Вывод всех заданий",
+    description="Вывод заданий",
     scope=GuildIDS
 )
 async def GetTasks(ctx: interactions.CommandContext):
     # TODO: вывод списка заданий для текущего ученика
 
     raise NotImplementedError
+
+
+@bot.command(
+    name="solved-tasks",
+    description="Вывод решённых заданий",
+    scope=GuildIDS
+)
+async def GetSolvedTasks(ctx: interactions.CommandContext):
+    db = DbConnection.CreateSession()
+    desc = []
+    desc.append("`Предмет:     Балл:`")
+    for task in db.query(Task).filter(Task.StudentId == int(ctx.author.id)).limit(50).all():
+        if task.Result is not None:
+            desc.append(f"`{getattr(Subject.Subjects, task.SubjectId)} - {task.Result}`")
+
+    emb = interactions.Embed(title="Решённые задания", color=0xff00, description="\n".join(desc))
+    await ctx.send(embeds=[emb])
 
 
 @bot.autocomplete(command="task", name="class_name")
