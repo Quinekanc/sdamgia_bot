@@ -81,6 +81,7 @@ async def FindTask(subject: str, number: int, ctx):
     task.TaskId = result.id
     task.ClassTaskId = None
     task.SubjectId = subject
+    task.StudentId = int(ctx.author.id)
 
     db.add(task)
     db.commit()
@@ -205,17 +206,20 @@ async def ModalResponseHandler(ctx, taskId: str):
 
     if task.tryToSolve(answer):
         components = []
-        for e in task.analogs:
+        for e in task.analogs[0:5]:
             components.append(interactions.Button(
                 style=interactions.ButtonStyle.PRIMARY,
-                label=f"Задание {e}",
+                label=f"Зад. {e}",
                 custom_id=f"analogTask_{task.subject}_{e}"
             ))
+        row = interactions.ActionRow(components=components)
 
-        await ctx.send(f"Правильно! Ваш балл - `{task.result}`")
+        await ctx.send(f"Правильно! Ваш балл - `{task.result}`\nПохожие задания:", components=row)
 
         db = DbConnection.CreateSession()
         db.query(Task).filter(Task.Id == taskId).update({"Result": task.result})
+        db.commit()
+
         #TODO: добавить кнопок с "похожими номерами"
     else:
         await ctx.send("Неверный ответ")
@@ -229,6 +233,11 @@ async def on_interaction_create(interaction):
         if interaction.custom_id.startswith("SolveTask_"):
             taskId = interaction.custom_id.split("_")[1]
             await SolveTaskButtonPress(interaction, taskId)
+
+        elif interaction.custom_id.startswith("analogTask_"):
+            subj = interaction.custom_id.split("_")[1]
+            number = interaction.custom_id.split("_")[2]
+            await FindTask(subj, int(number), interaction)
 
     elif interaction.type == interactions.InteractionType.MODAL_SUBMIT:
         custom_id = interaction._json['data']['custom_id']
