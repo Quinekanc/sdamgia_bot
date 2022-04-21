@@ -6,7 +6,7 @@ subjects = [
     interactions.Choice(name="Физика", value="phys"),
     interactions.Choice(name="Информатика", value="inf"),
     interactions.Choice(name="Русский Язык", value="rus"),
-    interactions.Choice(name="Литературы", value="lit"),
+    interactions.Choice(name="Литература", value="lit"),
     interactions.Choice(name="География", value="geo"),
     interactions.Choice(name="История", value="hist"),
     interactions.Choice(name="Обществознание", value="soc"),
