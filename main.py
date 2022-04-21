@@ -16,7 +16,7 @@ from DBmodels import DbConnection
 import json
 from data import Subjects
 from enums import Subject
-from DBmodels.Classes import Class
+from DBmodels.Class import Class
 from models.SdamGiaResponse import *
 import discord
 from utils.ImageUtils import GetPng, InitImageUtils
@@ -433,8 +433,18 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
 )
 async def GetTasks(ctx: interactions.CommandContext):
     # TODO: вывод списка заданий для текущего ученика
+    await ctx.defer()
 
-    raise NotImplementedError
+    db = DbConnection.CreateSession()
+
+    user: User = db.query(User).filter(User.Id == int(ctx.author.id)).first()
+    if user.ClassId is None:
+        await ctx.send("Вы не состоите ни в одном в классе")
+        return
+
+    cla: Class = db.query(Class).filter(Class.Id == user.ClassId).first()
+
+    await ctx.send("\n".join([e.TaskId for e in cla.Tasks]))
 
 
 @bot.command(
