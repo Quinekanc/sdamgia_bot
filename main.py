@@ -60,6 +60,55 @@ async def StatusCommand(ctx: interactions.CommandContext):
 
     await ctx.send(embeds=[emb])
 
+
+async def FindTask(subject: str, number: int, ctx):
+    try:
+        result = TaskModel(sdamgia.get_problem_by_id(subject, str(number)), ctx.author, subject)
+    except Exception as ex:
+        log(ex, loglevel=LogLevel.ERROR)
+        await ctx.send("Произошла ошибка")
+        return
+
+    if result is None:
+        await ctx.send("Задание не найдено", ephemeral=True)
+        return
+
+    TaskCache[result.uuid] = result
+
+    db = DbConnection.CreateSession()
+    task = Task()
+    task.Id = result.uuid
+    task.TaskId = result.id
+    task.ClassTaskId = None
+    task.SubjectId = subject
+
+    db.add(task)
+    db.commit()
+
+    if len(result.condition.images) == 0:
+        embs = [interactions.Embed(title=f"Задание №{number}",
+                                   description=f"""`{result.condition.text}`""",
+                                   color=0xff00)]
+    else:
+        await ctx.defer()
+        embs = []
+        for imgUrl in result.condition.images:
+            img = GetPng(imgUrl)
+            emb = discord.Embed(title=f"Задание №{number}",
+                                description=f"""`{result.condition.text}`""",
+                                color=0xff00,
+                                url=result.url)
+            emb.set_image(url=img)
+            embs.append(interactions.Embed(**emb.to_dict()))
+
+    await ctx.send(embeds=embs,
+                   components=[
+                       interactions.Button(style=interactions.ButtonStyle.SUCCESS,
+                                           label="Ответить",
+                                           custom_id=f"SolveTask_{result.uuid}")
+                   ])
+
+
 @bot.command(
     name="task",
     description="Получить задание",
@@ -119,44 +168,7 @@ async def StatusCommand(ctx: interactions.CommandContext):
 async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subject: str,
                       number: int = 0, class_name: str = ""):
     if sub_command == "find":
-        try:
-            result = TaskModel(sdamgia.get_problem_by_id(subject, str(number)), ctx.author)
-        except Exception as ex:
-            log(ex, loglevel=LogLevel.ERROR)
-            await ctx.send("Произошла ошибка")
-            return
-
-        if result is None:
-            await ctx.send("Задание не найдено", ephemeral=True)
-            return
-
-        #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
-
-        TaskCache[result.uuid] = result
-
-
-        if len(result.condition.images) == 0:
-            embs = [interactions.Embed(title=f"Задание №{number}",
-                                     description=f"""`{result.condition.text}`""",
-                                     color=0xff00)]
-        else:
-            await ctx.defer()
-            embs = []
-            for imgUrl in result.condition.images:
-                img = GetPng(imgUrl)
-                emb = discord.Embed(title=f"Задание №{number}",
-                                    description=f"""`{result.condition.text}`""",
-                                    color=0xff00,
-                                    url=result.url)
-                emb.set_image(url=img)
-                embs.append(interactions.Embed(**emb.to_dict()))
-
-        await ctx.send(embeds=embs,
-                       components=[
-                           interactions.Button(style=interactions.ButtonStyle.SUCCESS,
-                                               label="Ответить",
-                                               custom_id=f"SolveTask_{result.uuid}")
-                       ])
+        await FindTask(subject, number, ctx)
     elif sub_command == "give":
          # TODO: Выдача задания классу
          raise NotImplementedError
@@ -192,7 +204,18 @@ async def ModalResponseHandler(ctx, taskId: str):
     answer = ctx._json['data']['components'][0]['components'][0]['value']
 
     if task.tryToSolve(answer):
+        components = []
+        for e in task.analogs:
+            components.append(interactions.Button(
+                style=interactions.ButtonStyle.PRIMARY,
+                label=f"Задание {e}",
+                custom_id=f"analogTask_{task.subject}_{e}"
+            ))
+
         await ctx.send(f"Правильно! Ваш балл - `{task.result}`")
+
+        db = DbConnection.CreateSession()
+        db.query(Task).filter(Task.Id == taskId).update({"Result": task.result})
         #TODO: добавить кнопок с "похожими номерами"
     else:
         await ctx.send("Неверный ответ")

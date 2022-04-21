@@ -4,13 +4,14 @@ from interactions import Member
 
 
 class TaskModel(SdamGiaResponse.SdamGiaResponse):
-    def __init__(self, responseDict: dict, member: Member):
+    def __init__(self, responseDict: dict, member: Member, subject: str):
         super().__init__(responseDict)
         self.member = member
         self.uuid = str(uuid.uuid4())
         self.solved = False
         self.triesCount = 0
         self.result = None
+        self.subject = subject
 
     def solve(self):
         self.solved = True
