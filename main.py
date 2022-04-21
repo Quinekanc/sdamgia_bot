@@ -1,6 +1,7 @@
 import os
 
 from DBmodels.ClassTask import ClassTask
+from DBmodels.ClassTeacher import ClassTeacher
 from DBmodels.User import User
 
 vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
@@ -406,6 +407,48 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
                 required=True
                 )
             ]
+        ),
+        interactions.Option(
+            name="add_teacher",
+            description="Добавить учителя в класс",
+            type=interactions.OptionType.SUB_COMMAND,
+            required=False,
+            options=[
+                interactions.Option(
+                name="class_id",
+                description="Название класса",
+                type=interactions.OptionType.STRING,
+                required=True,
+                autocomplete=True
+                ),
+                interactions.Option(
+                name="user",
+                description="Учитель, который будет добавлен в класс",
+                type=interactions.OptionType.USER,
+                required=True
+                )
+            ]
+        ),
+        interactions.Option(
+            name="remove_teacher",
+            description="Убрать учителя из класса",
+            type=interactions.OptionType.SUB_COMMAND,
+            required=False,
+            options=[
+                interactions.Option(
+                name="class_id",
+                description="Название класса",
+                type=interactions.OptionType.STRING,
+                required=True,
+                autocomplete=True
+                ),
+                interactions.Option(
+                name="user",
+                description="Учитель, который будет убран из класса",
+                type=interactions.OptionType.USER,
+                required=True
+                )
+            ]
         )
     ]
 )
@@ -469,6 +512,43 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
         q.update({"ClassId": None})
         db.commit()
         await ctx.send("Участник удалён из класса")
+
+    elif sub_command == "add_teacher":
+        db = DbConnection.CreateSession()
+
+        usr: User = db.query(User).filter(User.Id == int(user.id)).first()
+
+        if usr is None:
+            await ctx.send("Участник не учитель")
+            return
+
+        if class_id in [e.Id for e in usr.classes]:
+            await ctx.send("Участник уже учитель в этом классе")
+            return
+
+        teacher = ClassTeacher()
+        teacher.TeacherId = int(user.id)
+        teacher.ClassId = class_id
+
+        db.add(teacher)
+        db.commit()
+
+        await ctx.send("Учитель добавлен в класс")
+
+    elif sub_command == "remove_teacher":
+        db = DbConnection.CreateSession()
+
+        usr: User = db.query(User).filter(User.Id == int(user.id)).first()
+
+        if class_id not in [e.Id for e in usr.classes]:
+            await ctx.send("Участник и так не учитель в этом классе")
+            return
+
+        db.query(ClassTeacher).filter(ClassTeacher.ClassId == class_id
+                                      and ClassTeacher.TeacherId == int(user.id)).delete()
+        db.commit()
+
+        await ctx.send("Учитель удалён из класса")
 
 
 @bot.command(
