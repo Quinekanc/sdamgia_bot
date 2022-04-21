@@ -11,6 +11,8 @@ class Task(SqlAlchemyBase):
     Topic = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     StudentId = sqlalchemy.Column(sqlalchemy.Integer)
     SubjectId = sqlalchemy.Column(sqlalchemy.String)
+
     ClassTaskId = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+
     Result = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
 

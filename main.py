@@ -62,6 +62,15 @@ async def StatusCommand(ctx: interactions.CommandContext):
     await ctx.send(embeds=[emb])
 
 
+def AddUserToDb(user):
+    db = DbConnection.CreateSession()
+    if db.query(User).filter(User.Id == int(user.id)).first() is None:
+        usr = User()
+        usr.Id = int(user.id)
+        db.add(usr)
+        db.commit()
+
+
 async def FindTask(subject: str, number: int, ctx):
     try:
         result = TaskModel(sdamgia.get_problem_by_id(subject, str(number)), ctx.author, subject)
@@ -169,6 +178,8 @@ async def FindTask(subject: str, number: int, ctx):
 )
 async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subject: str,
                       number: int = 0, class_name: str = ""):
+    AddUserToDb(ctx.author)
+
     if sub_command == "find":
         await FindTask(subject, number, ctx)
     elif sub_command == "give":
@@ -295,13 +306,15 @@ async def SearchClass(ctx, userInput: str = ""):
 )
 async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
                          user: interactions.Member = None):
-    if sub_command == "add":
-        teacher: User = User()
-        teacher.IsTeacher = True
+    AddUserToDb(ctx.author)
+    AddUserToDb(user)
 
+    if sub_command == "add":
         db_sess = DbConnection.CreateSession()
-        db_sess.add(teacher)
+        db_sess.query(User).filter(User.id == int(user.id)).update({"IsTeacher": True})
         db_sess.commit()
+
+        await ctx.send("Учитель добавлен")
 
     elif sub_command == "remove":
         # TODO: Убрать учителя
@@ -388,9 +401,14 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
     ]
 )
 async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
-                         user: interactions.Member = None, class_id: str = "", class_name: str = ""):
+                      user: interactions.Member = None, class_id: str = None,
+                      class_name: str = None):
     await ctx.defer()
-    class_id = int(class_id)
+
+    AddUserToDb(ctx.author)
+
+    if class_id is not None:
+        class_id = int(class_id)
 
     if sub_command == "create":
         main_class = Class()
@@ -435,6 +453,8 @@ async def GetTasks(ctx: interactions.CommandContext):
     # TODO: вывод списка заданий для текущего ученика
     await ctx.defer()
 
+    AddUserToDb(ctx.author)
+
     db = DbConnection.CreateSession()
 
     user: User = db.query(User).filter(User.Id == int(ctx.author.id)).first()
@@ -453,6 +473,9 @@ async def GetTasks(ctx: interactions.CommandContext):
     scope=GuildIDS
 )
 async def GetSolvedTasks(ctx: interactions.CommandContext):
+    await ctx.defer()
+    AddUserToDb(ctx.author)
+
     db = DbConnection.CreateSession()
     desc = []
     desc.append("`Предмет:     Балл:`")
