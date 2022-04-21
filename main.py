@@ -1,5 +1,6 @@
 import os
 
+from DBmodels.ClassTask import ClassTask
 from DBmodels.User import User
 
 vipshome = os.path.abspath(os.getcwd()) + '\\vips\\vips-dev-8.12\\bin\\'
@@ -153,7 +154,7 @@ async def FindTask(subject: str, number: int, ctx):
             required=False,
             options=[
                 interactions.Option(
-                    name="class_name",
+                    name="class_id",
                     description="Класс, которому будет выдано задание",
                     type=interactions.OptionType.STRING,
                     required=True,
@@ -177,14 +178,29 @@ async def FindTask(subject: str, number: int, ctx):
     ]
 )
 async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subject: str,
-                      number: int = 0, class_name: str = ""):
+                      number: int = 0, class_id: str = ""):
     AddUserToDb(ctx.author)
+    await ctx.defer()
 
     if sub_command == "find":
         await FindTask(subject, number, ctx)
     elif sub_command == "give":
-         # TODO: Выдача задания классу
-         raise NotImplementedError
+        db = DbConnection.CreateSession()
+
+        if not db.query(User).filter(User.Id == int(ctx.author.id)).first().IsTeacher:
+            await ctx.send("Вы не учитель!")
+            return
+
+        task = ClassTask()
+        task.TaskId = number
+        task.SubjectId = subject
+        task.TeacherId = int(ctx.author.id)
+        task.ClassId = class_id
+
+        db.add(task)
+        db.commit()
+
+        await ctx.send("Задание выдано классу")
 
 
 async def SolveTaskButtonPress(ctx: interactions.ComponentContext, taskId: str):
@@ -257,10 +273,8 @@ async def on_interaction_create(interaction):
 
 
 async def SearchClass(ctx, userInput: str = ""):
-    #TODO: сделать поиск названия класса в БД
-
     db = DbConnection.CreateSession()
-    classes = db.query(Class).limit(25).all()
+    classes = db.query(Class).filter(Class.ClassName.ilike(f"%{userInput}%")).limit(25).all()
     choices = []
     for cla in classes:
         cla: Class
@@ -311,15 +325,17 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
 
     if sub_command == "add":
         db_sess = DbConnection.CreateSession()
-        db_sess.query(User).filter(User.id == int(user.id)).update({"IsTeacher": True})
+        db_sess.query(User).filter(User.Id == int(user.id)).update({"IsTeacher": True})
         db_sess.commit()
 
         await ctx.send("Учитель добавлен")
 
     elif sub_command == "remove":
-        # TODO: Убрать учителя
+        db_sess = DbConnection.CreateSession()
+        db_sess.query(User).filter(User.Id == int(user.id)).update({"IsTeacher": False})
+        db_sess.commit()
 
-        raise NotImplementedError
+        await ctx.send("Учитель удалён")
 
 
 @bot.command(
@@ -384,13 +400,6 @@ async def TeacherCommand(ctx: interactions.CommandContext, sub_command: str,
             required=False,
             options=[
                 interactions.Option(
-                name="class_id",
-                description="Название класса",
-                type=interactions.OptionType.STRING,
-                required=True,
-                autocomplete=True
-                ),
-                interactions.Option(
                 name="user",
                 description="Ученик, который будет убран из класса",
                 type=interactions.OptionType.USER,
@@ -406,6 +415,9 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
     await ctx.defer()
 
     AddUserToDb(ctx.author)
+
+    if user is not None:
+        AddUserToDb(user)
 
     if class_id is not None:
         class_id = int(class_id)
@@ -434,14 +446,29 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
         db_sess.commit()
 
         await ctx.send("Класс удалён")
+
     elif sub_command == "add_student":
-        # TODO: Добавить ученика в класс
+        db = DbConnection.CreateSession()
+        q = db.query(User).filter(User.Id == int(user.id))
+        if q.first().ClassId is not None:
+            await ctx.send("Пользователь уже состоит в классе")
+            return
 
-        raise NotImplementedError
+        q.update({"ClassId": class_id})
+        db.commit()
+        await ctx.send("Участник добавлен в класс")
+
     elif sub_command == "remove_student":
-        # TODO: Убрать ученика из класс
 
-        raise NotImplementedError
+        db = DbConnection.CreateSession()
+        q = db.query(User).filter(User.Id == int(user.id))
+        if q.first().ClassId is None:
+            await ctx.send("Пользователь и так не состоял ни в одном классе")
+            return
+
+        q.update({"ClassId": None})
+        db.commit()
+        await ctx.send("Участник удалён из класса")
 
 
 @bot.command(
@@ -450,7 +477,6 @@ async def ClassComand(ctx: interactions.CommandContext, sub_command: str,
     scope=GuildIDS
 )
 async def GetTasks(ctx: interactions.CommandContext):
-    # TODO: вывод списка заданий для текущего ученика
     await ctx.defer()
 
     AddUserToDb(ctx.author)
@@ -463,8 +489,16 @@ async def GetTasks(ctx: interactions.CommandContext):
         return
 
     cla: Class = db.query(Class).filter(Class.Id == user.ClassId).first()
+    if len(cla.Tasks) == 0:
+        text = "Заданий нет"
+    else:
+        data = []
+        for task in cla.Tasks:
+            data.append("`Предмет:     Номер:`")
+            data.append(f"`{getattr(Subject.Subjects, task.SubjectId)} - {task.TaskId}`")
 
-    await ctx.send("\n".join([e.TaskId for e in cla.Tasks]))
+        text = "\n".join(data)
+    await ctx.send(text)
 
 
 @bot.command(
@@ -487,7 +521,7 @@ async def GetSolvedTasks(ctx: interactions.CommandContext):
     await ctx.send(embeds=[emb])
 
 
-@bot.autocomplete(command="task", name="class_name")
+@bot.autocomplete(command="task", name="class_id")
 async def SearchClassByNameAutocomplete(ctx, user_input: str = ""):
     await SearchClass(ctx, user_input)
 

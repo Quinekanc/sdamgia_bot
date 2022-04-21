@@ -11,4 +11,6 @@ class ClassTask(SqlAlchemyBase):
     ClassId = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Classes.Id"))
 
     TeacherId = sqlalchemy.Column(sqlalchemy.Integer)
-    TaskId = sqlalchemy.Column(sqlalchemy.String, sqlalchemy.ForeignKey("Tasks.ClassTaskId"))
+    TaskId = sqlalchemy.Column(sqlalchemy.Integer)
+
+    SubjectId = sqlalchemy.Column(sqlalchemy.String)
