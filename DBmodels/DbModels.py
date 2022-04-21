@@ -1,6 +1,5 @@
 from . import User
 from . import Task
-from . import Subject
 from . import Student
 from . import Classes
 from . import Teacher

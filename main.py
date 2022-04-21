@@ -128,7 +128,10 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
             await ctx.send("Задание не найдено", ephemeral=True)
             return
 
+        #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
+
         TaskCache[result.uuid] = result
+
 
         if len(result.condition.images) == 0:
             embs = [interactions.Embed(title=f"Задание №{number}",
@@ -145,8 +148,6 @@ async def TaskCommand(ctx: interactions.CommandContext, sub_command: str, subjec
                                     url=result.url)
                 emb.set_image(url=img)
                 embs.append(interactions.Embed(**emb.to_dict()))
-        #TODO: при создании задания оно добавляется в БД и в кэш; ID добавляется в кастомный id кнопки
-
 
         await ctx.send(embeds=embs,
                        components=[
