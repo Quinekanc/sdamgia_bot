@@ -12,3 +12,4 @@ class User(SqlAlchemyBase):
     IsTeacher = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
 
     ClassId = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    classes = orm.relationship("ClassTeacher", back_populates="Teacher")
