@@ -36,7 +36,7 @@ with open("guildIDs.json", mode='r', encoding='utf8') as f:
         GuildIDS = data['ids']
 
 
-bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=True)
+bot = interactions.Client(token=TOKEN, intents=interactions.Intents.ALL, disable_sync=False)
 
 sdamgia = SdamGIA()
 InitLogger(LogLevel.INFO)
